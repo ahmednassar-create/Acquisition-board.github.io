@@ -508,6 +508,8 @@ html,body{margin:0;background:#fff}body{padding:16px}
 .mq .side .sec.collapsed>:not(.sech){display:none}
 .mq .side .sec.collapsed .sech{margin:0}
 .mq .side .sec .sech:focus-visible{outline:3px solid var(--ring);outline-offset:2px}
+.mq .side .sec-rules{--sc:#00606A}
+.mq[data-part=pRules]{--part:#00606A}
 </style>
 </head>
 <body>
@@ -723,6 +725,14 @@ html,body{margin:0;background:#fff}body{padding:16px}
       <div class="tools"><a class="btn" id="tgt-open" target="_blank" rel="noopener" data-i="mapOpen"></a></div>
     </div>
     <iframe id="tgt-frame" class="mapframe" title="Contractors Target"></iframe>
+  </section>
+
+  <section class="card" id="frules">
+    <div class="head">
+      <div><h2 data-i="rulesTitle"></h2><p class="muted" data-i="rulesNote"></p></div>
+      <div class="tools"><a class="btn" id="rules-open" target="_blank" rel="noopener" data-i="mapOpen"></a></div>
+    </div>
+    <iframe id="rules-frame" class="mapframe" title="Fleet house rules"></iframe>
   </section>
 
   <section class="card" id="followup">
@@ -1365,6 +1375,8 @@ window.DASH_CONFIG = {
   const L = {
     ar: {
       area: 'تعيين المناديب',
+      secRules: 'القواعد التشغيلية للمندوبين', pRules: 'الخصومات والمكافآت', nRules: 'القواعد التشغيلية للمندوبين',
+      rulesTitle: 'القواعد التشغيلية للمندوبين', rulesNote: 'المستند المرجعي الداخلي لفريق الفليت (Fleet Quality): خصومات الفليت وخصومات التوصيل والتشغيل وحالات الفصل النهائي والمكافآت. لو ماظهرش أو عايزاه بحجم الشاشة كله اضغطي "افتح في تبويب جديد".',
       c_l7: 'مشيوا في أول 7 أيام %', c_lo: 'مشيوا في الأونبوردنج %', c_la: 'مشيوا بعد يوم 30 %', coOf: (a, b) => `${a} من ${b}`,
       tip_c_l7: 'نسبة اللي مشيوا وآخر يوم شغل ليهم كان خلال أول 7 أيام (أو ما اشتغلوش خالص)، من اللي عدّى عليهم 7 أيام. قابلة للمقارنة بين كل الأسابيع.',
       tip_c_lo: 'نسبة اللي مشيوا قبل ما يكملوا يوم 30 (أو ما بدأوش) من كل مناديب الأسبوع.', tip_c_la: 'نسبة اللي كمّلوا يوم 30 ومشيوا بعده من كل مناديب الأسبوع.',
@@ -1545,6 +1557,8 @@ window.DASH_CONFIG = {
     },
     en: {
       area: 'Courier Onboarding',
+      secRules: 'Fleet house rules', pRules: 'Deductions & rewards', nRules: 'Fleet house rules',
+      rulesTitle: 'Fleet house rules', rulesNote: 'The internal reference document of Fleet Quality: fleet deductions, delivery and operations deductions, final dismissal cases and rewards. If it does not show, or you want it full screen, click "Open in a new tab".',
       c_l7: 'Left in first 7 days %', c_lo: 'Left in onboarding %', c_la: 'Left after day 30 %', coOf: (a, b) => `${a} of ${b}`,
       tip_c_l7: 'Share who left and whose last working day was within the first 7 days (or who never worked), out of those who reached day 7. Comparable across all weeks.',
       tip_c_lo: 'Share who left before completing day 30 (or never started), out of all couriers of the week.', tip_c_la: 'Share who completed day 30 and left afterwards, out of all couriers of the week.',
@@ -2521,6 +2535,7 @@ window.DASH_CONFIG = {
     ['pCour', [['nLookup', ['lookup']], ['nFollow', ['followup']]]],
     ['pCon', [['nTgt', ['ctarget']], ['nConAll', ['cons-all']], ['nRankCon', ['rank-con']], ['nConCmp', ['concmp']]]],
     ['pMap', [['nMap', ['hubmap']]]],
+    ['pRules', [['nRules', ['frules']]]],
   ];
   const ALLSEC = Array.from(new Set(PARTS.reduce((a, p) => a.concat(p[1].reduce((b, i) => b.concat(i[1]), [])), [])));
   const partItems = () => (PARTS.find((p) => p[0] === S.part) || PARTS[0])[1];
@@ -2529,7 +2544,7 @@ window.DASH_CONFIG = {
     ALLSEC.forEach((id) => { const el = document.getElementById(id); if (el) el.hidden = it[1].indexOf(id) < 0; });
     const hd = S.part === 'pAbs' && S.view === 'nAbs'; $$('#filters .dc').forEach((e) => { e.hidden = hd; }); const fc = $('#f-count'); if (fc) fc.hidden = hd;
     $('#mq').dataset.part = S.part; syncSide();
-    { const fl = $('#filters'); if (fl) fl.hidden = S.view === 'nMap' || S.view === 'nTgt'; const mf = $('#map-frame'); if (mf && S.view === 'nMap' && !mf.getAttribute('src')) mf.setAttribute('src', MAP_URL); const mo = $('#map-open'); if (mo) mo.href = MAP_URL; const tf = $('#tgt-frame'); if (tf && S.view === 'nTgt' && !tf.getAttribute('src')) tf.setAttribute('src', TGT_URL); const to = $('#tgt-open'); if (to) to.href = TGT_URL; }
+    { const fl = $('#filters'); if (fl) fl.hidden = S.view === 'nMap' || S.view === 'nTgt' || S.view === 'nRules'; const mf = $('#map-frame'); if (mf && S.view === 'nMap' && !mf.getAttribute('src')) mf.setAttribute('src', MAP_URL); const mo = $('#map-open'); if (mo) mo.href = MAP_URL; const tf = $('#tgt-frame'); if (tf && S.view === 'nTgt' && !tf.getAttribute('src')) tf.setAttribute('src', TGT_URL); const to = $('#tgt-open'); if (to) to.href = TGT_URL; const rf = $('#rules-frame'); if (rf && S.view === 'nRules' && !rf.getAttribute('src')) rf.setAttribute('src', RULES_URL); const ro = $('#rules-open'); if (ro) ro.href = RULES_URL; }
     $$('#side button[data-v]').forEach((b) => { b.setAttribute('aria-pressed', String(b.dataset.p === S.part && b.dataset.v === S.view)); });
     $$('#side .pg').forEach((g) => g.classList.toggle('on', g.dataset.part === S.part));
   }
@@ -2551,8 +2566,8 @@ window.DASH_CONFIG = {
     car: 'M5 17h14M3 13l2-6h14l2 6v4H3zM7 17v2M17 17v2M7 13h.01M17 13h.01', bike: 'M5 18a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19 18a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM12 17l-2-5h5l3 5M13 7h3l1 3',
     users: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75', sun: 'M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10zM12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4', moon: 'M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z', auto: 'M12 3a9 9 0 1 0 0 18zM12 3v18', insights: 'M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12c1 1 1 2 1 3h6c0-1 0-2 1-3a7 7 0 0 0-4-12z', how: 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z',
   };
-  const PART_ICON = { pOnb: 'user', pAbs: 'abs', pBr: 'hubs', pCon: 'users', pTgt: 'rank', pMap: 'pin', pCour: 'userplus' };
-  const NAV_ICON = { all: 'home', nHome: 'home', nHubCmp: 'compare', nLeft: 'leave', nHubsAll: 'hubs', nRankHub: 'rank', nConAll: 'users', nRankCon: 'rank', nConCmp: 'compare', nJourney: 'check', nMap: 'pin', nTgt: 'rank', nCohort: 'dist', nMile: 'home', nDecide: 'insights', nBranches: 'hubs', nHubs: 'hubs', nOver30: 'dist', nEarly: 'leave', nRank: 'rank', nCompare: 'compare', nSnap: 'snap', nLookup: 'user', nLeave: 'leave', nFollow: 'follow', nAbs: 'abs', nAbsSnap: 'abssnap', nJourney: 'journey', nDaily: 'daily', nActivity: 'activity', nDist: 'dist', nExtra: 'extra', nInsights: 'insights', nCov: 'activity', nHow: 'how' };
+  const PART_ICON = { pOnb: 'user', pAbs: 'abs', pBr: 'hubs', pCon: 'users', pTgt: 'rank', pMap: 'pin', pCour: 'userplus', pRules: 'follow' };
+  const NAV_ICON = { all: 'home', nHome: 'home', nHubCmp: 'compare', nLeft: 'leave', nHubsAll: 'hubs', nRankHub: 'rank', nConAll: 'users', nRankCon: 'rank', nConCmp: 'compare', nJourney: 'check', nMap: 'pin', nTgt: 'rank', nRules: 'follow', nCohort: 'dist', nMile: 'home', nDecide: 'insights', nBranches: 'hubs', nHubs: 'hubs', nOver30: 'dist', nEarly: 'leave', nRank: 'rank', nCompare: 'compare', nSnap: 'snap', nLookup: 'user', nLeave: 'leave', nFollow: 'follow', nAbs: 'abs', nAbsSnap: 'abssnap', nJourney: 'journey', nDaily: 'daily', nActivity: 'activity', nDist: 'dist', nExtra: 'extra', nInsights: 'insights', nCov: 'activity', nHow: 'how' };
   const icon = (k, size) => {
     const ns = 'http://www.w3.org/2000/svg', s = document.createElementNS(ns, 'svg');
     s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('width', size || 16); s.setAttribute('height', size || 16); s.setAttribute('fill', 'none'); s.setAttribute('stroke', 'currentColor');
@@ -2570,7 +2585,7 @@ window.DASH_CONFIG = {
     const lbl = tt(S.theme === 'dark' ? 'thDark' : S.theme === 'light' ? 'thLight' : 'thAuto'); b.title = lbl; b.setAttribute('aria-label', lbl);
   }
   const MAP_URL = 'https://ahmednassar-create.github.io/bosta-HUBS-Locations-/', MAP_EMBED = true;
-  const TGT_URL = 'https://mohamed110277.github.io/data-1234/#month=24332'; const EXT = { nMap: MAP_URL, nTgt: TGT_URL };
+  const TGT_URL = 'https://mohamed110277.github.io/data-1234/#month=24332'; const RULES_URL = 'https://fleet-house-rules.vercel.app/'; const EXT = { nMap: MAP_URL, nTgt: TGT_URL, nRules: RULES_URL };
   const OPS_HOME = 'https://dashboards.bosta.co/insighthub/#Home';
   const OPS_DEFAULT = [{ name: 'Backlog & Aging Monitor', url: 'https://dashboards.bosta.co/insighthub/#dashboard%2Fbacklog-aging-monitor-2' }, { name: 'Hub Performance Board', url: 'https://dashboards.bosta.co/insighthub/#dashboard%2Fhub-board' }, { name: 'Pending Parcels Dashboard', url: 'https://dashboards.bosta.co/insighthub/#dashboard%2Fpending-parcels-dashboard-4' }, { name: 'Wrong Sorting', url: 'https://dashboards.bosta.co/insighthub/#dashboard%2Fwrong-sorting' }];
   const opsLinks = () => ((window.DASH_CONFIG && window.DASH_CONFIG.OPS_LINKS) || OPS_DEFAULT).filter((x) => x && x.name);
@@ -2591,9 +2606,9 @@ window.DASH_CONFIG = {
     });
     g.append(hd, box); return g;
   }
-  const SEC_PARTS = { ops: [], onb: ['pOnb', 'pAbs', 'pBr', 'pCour'], con: ['pCon'], map: ['pMap'] };
+  const SEC_PARTS = { ops: [], onb: ['pOnb', 'pAbs', 'pBr', 'pCour'], con: ['pCon'], map: ['pMap'], rules: ['pRules'] };
   const secIsOpen = (id) => (S.secOpen[id] === undefined ? SEC_PARTS[id].includes(S.part) : S.secOpen[id]);
-  const isOpen = (p) => (p === 'pCon' || p === 'pMap' ? true : S.open[p] === undefined ? p === S.part : S.open[p]);
+  const isOpen = (p) => (p === 'pCon' || p === 'pMap' || p === 'pRules' ? true : S.open[p] === undefined ? p === S.part : S.open[p]);
   function syncSide() {
     if (S._lp !== S.part) { Object.keys(S.open).forEach((k) => { if (k !== 'ops') delete S.open[k]; }); S.secOpen = {}; S._lp = S.part; }
     $$('#side .sec').forEach((w) => w.classList.toggle('collapsed', !secIsOpen(w.dataset.sec)));
@@ -2621,7 +2636,7 @@ window.DASH_CONFIG = {
       });
       g.append(hd, box); host.append(g);
     };
-    const SECS = [['secOps', 'ops', 'ops'], ['secOnb', ['pOnb', 'pAbs', 'pBr', 'pCour'], 'onb'], ['secCon', ['pCon'], 'con'], ['secMap', ['pMap'], 'map']];
+    const SECS = [['secOps', 'ops', 'ops'], ['secOnb', ['pOnb', 'pAbs', 'pBr', 'pCour'], 'onb'], ['secCon', ['pCon'], 'con'], ['secMap', ['pMap'], 'map'], ['secRules', ['pRules'], 'rules']];
     SECS.forEach(([k, what, id]) => { const wrap = document.createElement('div'); wrap.className = 'sec sec-' + id; wrap.dataset.sec = id; side.append(wrap); host = wrap; head(k, id); if (what === 'ops') host.append(opsGroup()); else what.forEach((p) => renderPart(PARTS.find((x) => x[0] === p))); });
     applyView();
   }
