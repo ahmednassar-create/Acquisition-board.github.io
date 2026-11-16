@@ -860,7 +860,7 @@ window.DASH_CONFIG = {
   const LIVE = useCsv || usePub || !!CFG.SHEET_ID;
   const IDS = ['master', 'performance', 'absence', 'hubmap', 'limits', 'rules', 'targets'];
   const DATA = window.__DATA__ || {}, LOADERS = {};
-  let cb = null, ready = !!window.__DATA__, t = null, started = false, state = 'demo', stamp = null, busy = false;
+  let cb = null, ready = !!window.__DATA__, t = null, started = false, state = 'demo', stamp = null, busy = false, done = 0;
   const fire = () => { if (cb && ready) { try { cb(); } catch (e) { console.error(e); } } };
   window.dash = {
     loader(id, o) { LOADERS[id] = o; },
@@ -882,8 +882,8 @@ window.DASH_CONFIG = {
   function paintChip() {
     const b = document.getElementById('live-chip'); if (!b) return;
     const ar = (document.documentElement.lang || 'ar') === 'ar', tm = stamp ? stamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-    const L = { live: ar ? 'مباشر من الشيت · آخر تحديث ' + tm : 'Live from the sheet · updated ' + tm, loading: ar ? 'بيتحدّث…' : 'Updating…', offline: ar ? 'مفيش اتصال بالشيت · نسخة محفوظة' : 'Sheet not reachable · saved copy', demo: ar ? 'نسخة محفوظة (مش متصلة بالشيت)' : 'Saved copy (not connected to the sheet)' };
-    b.textContent = L[state]; b.title = state === 'offline' && lastErr ? lastErr : (LIVE ? (ar ? 'اضغط للتحديث الآن' : 'Click to refresh now') : (ar ? 'الصفحة مش متوصّلة بالشيت: حطي الـ PUBLISH_ID في الإعدادات' : 'Not connected to the sheet: set PUBLISH_ID in the settings'));
+    const L = { live: ar ? 'مباشر من الشيت · آخر تحديث ' + tm : 'Live from the sheet · updated ' + tm, loading: (ar ? 'بيتحدّث… ' : 'Updating… ') + done + '/5', partial: ar ? 'اتحدّث جزئيًا · آخر تحديث ' + tm : 'Partly updated · ' + tm, offline: ar ? 'مفيش اتصال بالشيت · نسخة محفوظة' : 'Sheet not reachable · saved copy', demo: ar ? 'نسخة محفوظة (مش متصلة بالشيت)' : 'Saved copy (not connected to the sheet)' };
+    b.textContent = L[state]; b.title = (state === 'offline' || state === 'partial') && lastErr ? lastErr : (LIVE ? (ar ? 'اضغط للتحديث الآن' : 'Click to refresh now') : (ar ? 'الصفحة مش متوصّلة بالشيت: حطي الـ PUBLISH_ID في الإعدادات' : 'Not connected to the sheet: set PUBLISH_ID in the settings'));
   }
   new MutationObserver(paintChip).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
 
@@ -905,21 +905,29 @@ window.DASH_CONFIG = {
     if (useCsv) { const base = CFG.CSV_URLS[key]; u = base + (base.indexOf('?') >= 0 ? '&' : '?') + 't=' + Date.now(); }
     else if (usePub) u = 'https://docs.google.com/spreadsheets/d/e/' + CFG.PUBLISH_ID + '/pub?gid=' + CFG.GIDS[key] + '&single=true&output=csv&t=' + Date.now();
     else u = 'https://docs.google.com/spreadsheets/d/' + CFG.SHEET_ID + '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(CFG.TABS[key]) + '&t=' + Date.now();
-    let r; try { r = await fetch(u); } catch (e) { throw new Error(key + ': ' + (navigator.onLine === false ? 'no internet' : 'blocked or wrong link (Failed to fetch)')); }
-    if (!r.ok) throw new Error(key + ': HTTP ' + r.status + (r.status === 404 ? ' (wrong id or tab not published)' : ''));
-    return parseCSV(await r.text());
+    const limit = CFG.TIMEOUT_MS || 30000, ac = typeof AbortController === 'function' ? new AbortController() : null, tmo = ac ? setTimeout(() => ac.abort(), limit) : null;
+    let r; try { r = await fetch(u, ac ? { signal: ac.signal } : undefined); } catch (e) { if (tmo) clearTimeout(tmo); throw new Error(key + ': ' + (ac && ac.signal.aborted ? 'timeout (no answer in ' + Math.round(limit / 1000) + 's)' : navigator.onLine === false ? 'no internet' : 'blocked or wrong link (Failed to fetch)')); }
+    if (!r.ok) { if (tmo) clearTimeout(tmo); throw new Error(key + ': HTTP ' + r.status + (r.status === 404 ? ' (wrong id or tab not published)' : '')); }
+    let txt; try { txt = await r.text(); } catch (e) { throw new Error(key + ': download interrupted' + (ac && ac.signal.aborted ? ' (timeout)' : '')); } finally { if (tmo) clearTimeout(tmo); }
+    return parseCSV(txt);
   }
   async function loadLive(manual) {
-    if (busy) return Promise.resolve(); busy = true; if (manual || !stamp) { state = 'loading'; paintChip(); }
+    if (busy) return Promise.resolve(); busy = true; if (manual || !stamp) { state = 'loading'; done = 0; paintChip(); }
+    const res = await Promise.allSettled(KEYS.map((k) => fetchTab(k).then((rows) => { if (state === 'loading') { done++; paintChip(); } return rows; })));
+    const ok = {}, errs = [];
+    res.forEach((r, i) => { if (r.status === 'fulfilled') ok[KEYS[i]] = r.value; else errs.push(String((r.reason && r.reason.message) || r.reason)); });
     try {
-      const [m, p, a, hb, st] = await Promise.all(KEYS.map(fetchTab));
       const run = (id, values) => LOADERS[id].fn({ answer: { values } });
-      const next = { master: run('master', m), performance: run('performance', p), absence: run('absence', a), hubmap: run('hubmap', hb), limits: run('limits', st), rules: run('rules', st) };
-      try { next.targets = run('targets', st); } catch (e) { next.targets = [{ left: null, wk: null, d15: null, d1: null }]; }
-      IDS.forEach((id) => { if (next[id]) DATA[id] = next[id]; });
-      state = 'live'; stamp = new Date(); ready = true; paintChip(); fire();
-    } catch (e) { console.warn('Live load failed, keeping the saved copy:', e); lastErr = String(e && e.message || e); state = 'offline'; paintChip(); }
-    busy = false;
+      if (ok.master) DATA.master = run('master', ok.master);
+      if (ok.performance) DATA.performance = run('performance', ok.performance);
+      if (ok.absence) DATA.absence = run('absence', ok.absence);
+      if (ok.hubs) DATA.hubmap = run('hubmap', ok.hubs);
+      if (ok.settings) { DATA.limits = run('limits', ok.settings); DATA.rules = run('rules', ok.settings); try { DATA.targets = run('targets', ok.settings); } catch (e) { /* keep the saved targets */ } }
+      if (Object.keys(ok).length) { ready = true; stamp = new Date(); fire(); }
+    } catch (e) { errs.push('read error: ' + (e && e.message || e)); }
+    lastErr = errs.join(' | ');
+    if (errs.length) console.warn('Live load problems:', lastErr);
+    state = !errs.length ? 'live' : (Object.keys(ok).length ? 'partial' : 'offline'); paintChip(); busy = false;
   }
   if (!window.__DATA__) Promise.all(IDS.map((id) => fetch('data/' + id + '.json').then((r) => (r.ok ? r.json() : Promise.reject(new Error(id)))).then((rows) => { DATA[id] = rows; }).catch((e) => console.warn('missing data file', id, e.message)))).then(() => { ready = true; fire(); });
 })();
@@ -2648,7 +2656,7 @@ window.DASH_CONFIG = {
     };
     const SECS = [['secOps', 'ops', 'ops'], ['secOnb', ['pOnb', 'pAbs', 'pBr', 'pCour'], 'onb'], ['secCon', ['pCon'], 'con'], ['secMap', ['pMap'], 'map'], ['secRules', ['pRules'], 'rules']];
     SECS.forEach(([k, what, id]) => { const wrap = document.createElement('div'); wrap.className = 'sec sec-' + id; wrap.dataset.sec = id; side.append(wrap); host = wrap; head(k, id); if (what === 'ops') host.append(opsGroup()); else what.forEach((p) => renderPart(PARTS.find((x) => x[0] === p))); });
-    { const bt = document.createElement('div'); bt.className = 'buildtag'; bt.textContent = 'build 16-Nov-c'; side.append(bt); }
+    { const bt = document.createElement('div'); bt.className = 'buildtag'; bt.textContent = 'build 16-Nov-d'; side.append(bt); }
     applyView();
   }
 
