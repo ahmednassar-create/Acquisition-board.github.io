@@ -519,6 +519,7 @@ html,body{margin:0;background:#fff}body{padding:16px}
 .mq .side .sec .pg .pgh{padding:4px 8px;font-size:.84rem}
 .mq .side .sec .pitems{padding-top:1px;padding-bottom:1px}
 .mq .side .sec .pitems button,.mq .side .sec .pitems a.lnk{padding:3px 8px;font-size:.8rem}
+.mq .side .buildtag{margin-top:6px;font-size:.68rem;color:var(--c-muted);text-align:center;opacity:.7}
 </style>
 </head>
 <body>
@@ -2647,6 +2648,7 @@ window.DASH_CONFIG = {
     };
     const SECS = [['secOps', 'ops', 'ops'], ['secOnb', ['pOnb', 'pAbs', 'pBr', 'pCour'], 'onb'], ['secCon', ['pCon'], 'con'], ['secMap', ['pMap'], 'map'], ['secRules', ['pRules'], 'rules']];
     SECS.forEach(([k, what, id]) => { const wrap = document.createElement('div'); wrap.className = 'sec sec-' + id; wrap.dataset.sec = id; side.append(wrap); host = wrap; head(k, id); if (what === 'ops') host.append(opsGroup()); else what.forEach((p) => renderPart(PARTS.find((x) => x[0] === p))); });
+    { const bt = document.createElement('div'); bt.className = 'buildtag'; bt.textContent = 'build 16-Nov-c'; side.append(bt); }
     applyView();
   }
 
